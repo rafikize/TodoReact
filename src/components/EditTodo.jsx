@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Button from "./Button";
 
 function EditTodo({ todo, editTodo, cancelEditTodo }) {
   const [value, setValue] = useState(todo.content);
@@ -32,15 +33,9 @@ function EditTodo({ todo, editTodo, cancelEditTodo }) {
         className="mr-15 flex-fill"
         placeholder="Ajouter une todo"
       />
-      <button onClick={handleClick} className="btn btn-primary">
-        Souvgarder
-      </button>
-      <button
-        onClick={cancelEditTodo}
-        className="btn btn-reverse-primary mr-15"
-      >
-        Annuler
-      </button>
+
+      <Button onClick={cancelEditTodo} className="mr-15" text="Annuler" />
+      <Button onClick={handleClick} className="mr-15" text="Souvgarder" />
     </div>
   );
 }
