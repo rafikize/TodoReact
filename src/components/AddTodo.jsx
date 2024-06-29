@@ -1,7 +1,9 @@
 import { useState } from "react";
 
-function AddTodo({ addTodo }) {
+export default function AddTodo({ addTodo }) {
   const [value, setValue] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   function handleChange(e) {
     const inputValue = e.target.value;
@@ -10,32 +12,61 @@ function AddTodo({ addTodo }) {
 
   function handleKeyDown(e) {
     if (e.key === "Enter" && value.length) {
-      addTodo(value);
-      setValue("");
+      createTodo();
+    }
+  }
+
+  async function createTodo() {
+    try {
+      setLoading(true);
+      setError(null);
+      const reponse = await fetch("https://restapi.fr/api/todo", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          content: value,
+          edit: false,
+          done: false,
+        }),
+      });
+      if (reponse.ok) {
+        const todo = await reponse.json();
+        addTodo(todo);
+        setValue("");
+      } else {
+        setError("Oops, une erreur");
+      }
+    } catch (e) {
+      setError("Oops, une erreur");
+    } finally {
+      setLoading(false);
     }
   }
 
   function handleClick() {
     if (value.length) {
-      addTodo(value);
-      setValue("");
+      createTodo();
     }
   }
+
   return (
-    <div className="d-flex flex-row justify-content-center align-items-center mb-20">
-      <input
-        type="text"
-        onChange={handleChange}
-        onKeyDown={handleKeyDown}
-        value={value}
-        placeholder="Ajouter une todo"
-        className="mr-15 flex-fill"
-      />
-      <button onClick={handleClick} className="btn btn-primary">
-        Ajouter
-      </button>
-    </div>
+    <>
+      <div className="d-flex justify-content-center align-items-center mb-20">
+        <input
+          type="text"
+          onChange={handleChange}
+          onKeyDown={handleKeyDown}
+          value={value}
+          className="mr-15 flex-fill"
+          placeholder="Ajouter une tâche"
+        />
+        <button onClick={handleClick} className="btn btn-primary">
+          {loading ? "Chargement" : "Ajouter"}
+        </button>
+      </div>
+      {error && <p style={{ color: "red" }}>{error}</p>}
+    </>
   );
 }
-
-export default AddTodo;

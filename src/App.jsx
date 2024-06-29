@@ -1,61 +1,102 @@
-import { useState } from "react";
-import AddTodo from "./components/AddTodo";
-import TodoList from "./components/TodoList";
+import { useReducer, useEffect, useState } from 'react';
+import TodoList from './components/TodoList';
+import AddTodo from './components/AddTodo';
+
+function todoReducer(state, action) {
+  switch (action.type) {
+    case 'FETCH_TODO': {
+      return {
+        ...state,
+        todoList: action.todoList,
+      };
+    }
+    case 'ADD_TODO': {
+      return {
+        ...state,
+        todoList: [...state.todoList, action.todo],
+      };
+    }
+    case 'UPDATE_TODO': {
+      return {
+        ...state,
+        todoList: state.todoList.map((t) =>
+          t._id === action.todo._id ? action.todo : t
+        ),
+      };
+    }
+    case 'DELETE_TODO': {
+      return {
+        ...state,
+        todoList: state.todoList.filter((t) => t._id !== action.todo._id),
+      };
+    }
+    default: {
+      throw new Error('Action inconnue');
+    }
+  }
+}
 
 function App() {
-  const [todoList, setTodoList] = useState([]);
+  const [state, dispatch] = useReducer(todoReducer, { todoList: [] });
+  const [loading, setLoading] = useState(false);
 
-  function addTodo(content) {
-    const todo = {
-      id: crypto.randomUUID(),
-      done: false,
-      edit: false,
-      content,
-      selected: false,
+  useEffect(() => {
+    let ignore = false;
+    async function fetchTodoList() {
+      try {
+        const reponse = await fetch('https://restapi.fr/api/todo');
+        if (reponse.ok) {
+          const todos = await reponse.json();
+          if (!ignore) {
+            if (Array.isArray(todos)) {
+              dispatch({ type: 'FETCH_TODO', todoList: todos });
+            } else {
+              dispatch({ type: 'FETCH_TODO', todoList: [todos] });
+            }
+          }
+        } else {
+          console.error('Oops, une erreur');
+        }
+      } catch (e) {
+        console.error('Oops, une erreur');
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    }
+    fetchTodoList();
+    return () => {
+      ignore = true;
     };
-    setTodoList([...todoList, todo]);
+  }, []);
+
+  function addTodo(newTodo) {
+    dispatch({ type: 'ADD_TODO', todo: newTodo });
   }
 
-  function deleteTodo(id) {
-    setTodoList(todoList.filter((todo) => todo.id !== id));
+  function deleteTodo(deletedTodo) {
+    dispatch({ type: 'DELETE_TODO', todo: deletedTodo });
   }
 
-  function toggleTodo(id) {
-    setTodoList(
-      todoList.map((todo) =>
-        todo.id === id ? { ...todo, done: !todo.done } : todo
-      )
-    );
-  }
-
-  function toggleTodoEdit(id) {
-    setTodoList(
-      todoList.map((todo) =>
-        todo.id === id ? { ...todo, edit: !todo.edit } : todo
-      )
-    );
-  }
-
-  function editTodo(id, content) {
-    setTodoList(
-      todoList.map((todo) =>
-        todo.id === id ? { ...todo, edit: false, content } : todo
-      )
-    );
+  function updateTodo(updatedTodo) {
+    dispatch({ type: 'UPDATE_TODO', todo: updatedTodo });
   }
 
   return (
-    <div className="d-flex flex-row justify-content-center align-items-center p-20">
+    <div className="d-flex justify-content-center align-items-center p-20">
       <div className="card container p-20">
-        <h1 className="mb-20">Todo list</h1>
+        <h1 className="mb-20">Liste de tâches</h1>
         <AddTodo addTodo={addTodo} />
-        <TodoList
-          todoList={todoList}
-          deleteTodo={deleteTodo}
-          toggleTodo={toggleTodo}
-          toggleTodoEdit={toggleTodoEdit}
-          editTodo={editTodo}
-        />
+        {loading ? (
+          <p>Chargement en cours...</p>
+        ) : (
+          <TodoList
+            todoList={state.todoList}
+            deleteTodo={deleteTodo}
+            updateTodo={updateTodo}
+          />
+        )}
       </div>
     </div>
   );
